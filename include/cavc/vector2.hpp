@@ -7,24 +7,24 @@ namespace cavc {
 template <typename Real> using Vector2 = Vector<Real, 2>;
 
 /// Perpendicular vector to v (rotating counter clockwise).
-template <typename Real> Vector2<Real> perp(Vector2<Real> const &v) {
+template <typename Real> Vector2<Real> make_orthogonal(Vector2<Real> const &v) {
   return Vector2<Real>{-v.y(), v.x()};
 }
 
 /// Normalized perpendicular vector to v (rotating counter clockwise).
-template <typename Real> Vector2<Real> unitPerp(Vector2<Real> const &v) {
+template <typename Real> Vector2<Real> make_orthonormal(Vector2<Real> const &v) {
   Vector2<Real> result{-v.y(), v.x()};
   normalize(result);
   return result;
 }
 
-/// Perpendicular dot product. Equivalent to dot(v0, perp(v1)).
-template <typename Real> Real perpDot(Vector2<Real> const &v0, Vector2<Real> const &v1) {
+/// Perpendicular dot product. Equivalent to dot(v0, make_orthogonal(v1)).
+template <typename Real> Real cross(Vector2<Real> const &v0, Vector2<Real> const &v1) {
   return v0.x() * v1.y() - v0.y() * v1.x();
 }
 
 /// Returns the distance squared between p0 and p1. Equivalent to dot(p1 - p0, p1 - p0).
-template <typename Real> Real distSquared(Vector2<Real> const &p0, Vector2<Real> const &p1) {
+template <typename Real> Real squared_distance(Vector2<Real> const &p0, Vector2<Real> const &p1) {
   Vector2<Real> d = p1 - p0;
   return dot(d, d);
 }
@@ -41,20 +41,20 @@ template <typename Real> Vector2<Real> midpoint(Vector2<Real> const &p0, Vector2
 
 /// Computes the point on the circle with radius, center, and polar angle given.
 template <typename Real>
-Vector2<Real> pointOnCircle(Real radius, Vector2<Real> const &center, Real angle) {
+Vector2<Real> get_point_on_circle_by_polar_angle(Real radius, Vector2<Real> const &center, Real angle) {
   return Vector2<Real>{center.x() + radius * std::cos(angle),
                        center.y() + radius * std::sin(angle)};
 }
 
 /// Return the point on the segment going from p0 to p1 at parametric value t.
 template <typename Real>
-Vector2<Real> pointFromParametric(Vector2<Real> const &p0, Vector2<Real> const &p1, Real t) {
+Vector2<Real> get_point_by_parametric_sweep(Vector2<Real> const &p0, Vector2<Real> const &p1, Real t) {
   return p0 + t * (p1 - p0);
 }
 
 /// Returns the closest point that lies on the line segment from p0 to p1 to the point given.
 template <typename Real>
-Vector2<Real> closestPointOnLineSeg(Vector2<Real> const &p0, Vector2<Real> const &p1,
+Vector2<Real> get_closest_point_on_lineseg_to_point(Vector2<Real> const &p0, Vector2<Real> const &p1,
                                     Vector2<Real> const &point) {
   // Dot product used to find angles
   // See: http://geomalgorithms.com/a02-_lines.html
@@ -110,8 +110,8 @@ bool isRightOrCoincident(Vector2<Real> const &p0, Vector2<Real> const &p1,
 template <typename Real>
 bool pointWithinArcSweepAngle(Vector2<Real> const &center, Vector2<Real> const &arcStart,
                               Vector2<Real> const &arcEnd, Real bulge, Vector2<Real> const &point) {
-  CAVC_ASSERT(std::abs(bulge) > utils::realThreshold<Real>(), "expected arc");
-  CAVC_ASSERT(std::abs(bulge) <= Real(1), "bulge should always be between -1 and 1");
+  PLLIB_ASSERT(std::abs(bulge) > utils::realThreshold<Real>(), "expected arc");
+  PLLIB_ASSERT(std::abs(bulge) <= Real(1), "bulge should always be between -1 and 1");
 
   if (bulge > Real(0)) {
     return isLeftOrCoincident(center, arcStart, point) &&

@@ -7,7 +7,7 @@
 #include <iostream>
 constexpr inline cavc_real PI() { return 3.14159265358979323846264338327950288; }
 constexpr inline cavc_real TEST_EPSILON() { return 1e-5; }
-template <typename Real> inline bool fuzzyEqual(Real const &left, cavc_real const &right) {
+template <typename Real> inline bool fuzzy::equal(Real const &left, cavc_real const &right) {
   return std::abs(left - right) < TEST_EPSILON();
 }
 
@@ -40,18 +40,18 @@ MATCHER(EqIgnoreSignOfArea, "") {
   auto const &left = std::get<0>(arg);
   auto const &right = std::get<1>(arg);
   return left.vertexCount == right.vertexCount &&
-         fuzzyEqual(std::abs(left.area), std::abs(right.area)) &&
-         fuzzyEqual(left.pathLength, right.pathLength) && fuzzyEqual(left.minX, right.minX) &&
-         fuzzyEqual(left.minY, right.minY) && fuzzyEqual(left.maxX, right.maxX) &&
-         fuzzyEqual(left.maxY, right.maxY);
+         fuzzy::equal(std::abs(left.area), std::abs(right.area)) &&
+         fuzzy::equal(left.pathLength, right.pathLength) && fuzzy::equal(left.minX, right.minX) &&
+         fuzzy::equal(left.minY, right.minY) && fuzzy::equal(left.maxX, right.maxX) &&
+         fuzzy::equal(left.maxY, right.maxY);
 }
 
 // fuzzy equality operator== for testing
 inline bool operator==(PolylineProperties const &left, PolylineProperties const &right) {
-  return left.vertexCount == right.vertexCount && fuzzyEqual(left.area, right.area) &&
-         fuzzyEqual(left.pathLength, right.pathLength) && fuzzyEqual(left.minX, right.minX) &&
-         fuzzyEqual(left.minY, right.minY) && fuzzyEqual(left.maxX, right.maxX) &&
-         fuzzyEqual(left.maxY, right.maxY);
+  return left.vertexCount == right.vertexCount && fuzzy::equal(left.area, right.area) &&
+         fuzzy::equal(left.pathLength, right.pathLength) && fuzzy::equal(left.minX, right.minX) &&
+         fuzzy::equal(left.minY, right.minY) && fuzzy::equal(left.maxX, right.maxX) &&
+         fuzzy::equal(left.maxY, right.maxY);
 }
 
 inline std::ostream &operator<<(std::ostream &os, PolylineProperties const &p) {

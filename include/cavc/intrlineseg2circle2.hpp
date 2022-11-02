@@ -35,7 +35,7 @@ IntrLineSeg2Circle2Result<Real> intrLineSeg2Circle2(Vector2<Real> const &p0,
     // v1 = v2, test if point is on the circle
     Real xh = p0.x() - h;
     Real yk = p0.y() - k;
-    if (utils::fuzzyEqual(xh * xh + yk * yk, radius * radius)) {
+    if (utils::fuzzy::equal(xh * xh + yk * yk, radius * radius)) {
       result.numIntersects = 1;
       result.t0 = Real(0);
     } else {
@@ -61,7 +61,7 @@ IntrLineSeg2Circle2Result<Real> intrLineSeg2Circle2(Vector2<Real> const &p0,
     }
   }
 
-  CAVC_ASSERT(result.numIntersects >= 0 && result.numIntersects <= 2, "invalid intersect count");
+  PLLIB_ASSERT(result.numIntersects >= 0 && result.numIntersects <= 2, "invalid intersect count");
   return result;
 }
 } // namespace cavc

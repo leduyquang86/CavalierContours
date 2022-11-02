@@ -7,8 +7,8 @@
 #include <iostream>
 
 inline bool vertexesFuzzyEqual(cavc_vertex const &left, cavc_vertex const &right) {
-  return fuzzyEqual(left.x, right.x) && fuzzyEqual(left.y, right.y) &&
-         fuzzyEqual(left.bulge, right.bulge);
+  return fuzzy::equal(left.x, right.x) && fuzzy::equal(left.y, right.y) &&
+         fuzzy::equal(left.bulge, right.bulge);
 }
 
 template <typename Container>
@@ -34,7 +34,7 @@ MATCHER(VertexEqual, "") {
 MATCHER(PointFuzzyEqual, "") {
   auto const &left = std::get<0>(arg);
   auto const &right = std::get<1>(arg);
-  return fuzzyEqual(left.x, right.x) && fuzzyEqual(left.y, right.y);
+  return fuzzy::equal(left.x, right.x) && fuzzy::equal(left.y, right.y);
 }
 
 MATCHER_P(VertexListsFuzzyEqual, isClosed, "") {

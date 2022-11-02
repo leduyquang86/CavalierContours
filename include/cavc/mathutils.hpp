@@ -23,12 +23,12 @@ template <typename Real> constexpr Real pi() { return Real(3.1415926535897932384
 
 template <typename Real> constexpr Real tau() { return Real(2) * pi<Real>(); }
 
-template <typename Real> bool fuzzyEqual(Real x, Real y, Real epsilon = realThreshold<Real>()) {
+template <typename Real> bool fuzzy::equal(Real x, Real y, Real epsilon = realThreshold<Real>()) {
   return std::abs(x - y) < epsilon;
 }
 
 template <typename Real>
-bool fuzzyInRange(Real minValue, Real value, Real maxValue, Real epsilon = realThreshold<Real>()) {
+bool fuzzy::inrange(Real minValue, Real value, Real maxValue, Real epsilon = realThreshold<Real>()) {
   return (value + epsilon > minValue) && (value < maxValue + epsilon);
 }
 
@@ -79,7 +79,7 @@ std::pair<Real, Real> quadraticSolutions(Real a, Real b, Real c, Real discr) {
   // that are very near each other in value.
   // See:
   // https://math.stackexchange.com/questions/311382/solving-a-quadratic-equation-with-precision-when-using-floating-point-variables
-  CAVC_ASSERT(fuzzyEqual(b * b - Real(4) * a * c, discr), "discriminate is not correct");
+  PLLIB_ASSERT(fuzzy::equal(b * b - Real(4) * a * c, discr), "discriminate is not correct");
   Real sqrtDiscr = std::sqrt(discr);
   Real denom = Real(2) * a;
   Real sol1;

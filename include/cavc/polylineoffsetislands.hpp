@@ -43,13 +43,13 @@ private:
 
   // get an offset loop by index i, maps to ccw then cw offset loops
   OffsetLoop<Real> &getOffsetLoop(std::size_t i) {
-    return i < m_ccwOffsetLoops.size() ? m_ccwOffsetLoops[i]
-                                       : m_cwOffsetLoops[i - m_ccwOffsetLoops.size()];
+    return i < _ccwOffsetLoops.size() ? _ccwOffsetLoops[i]
+                                       : _cwOffsetLoops[i - _ccwOffsetLoops.size()];
   }
 
   OffsetLoop<Real> const &getParentLoop(std::size_t i) {
-    return i < m_inputSet->ccwLoops.size() ? m_inputSet->ccwLoops[i]
-                                           : m_inputSet->cwLoops[i - m_inputSet->ccwLoops.size()];
+    return i < _inputSet->ccwLoops.size() ? _inputSet->ccwLoops[i]
+                                           : _inputSet->cwLoops[i - _inputSet->ccwLoops.size()];
   }
 
   void createOffsetLoops(const OffsetLoopSet<Real> &input, Real absDelta);
@@ -76,35 +76,35 @@ private:
   void createSlicesFromLoop(std::size_t loopIndex, Real absDelta,
                             std::vector<DissectedSlice> &result);
 
-  OffsetLoopSet<Real> const *m_inputSet;
+  OffsetLoopSet<Real> const *_inputSet;
 
   // counter clockwise offset loops, these surround the clockwise offset loops
-  std::vector<OffsetLoop<Real>> m_ccwOffsetLoops;
+  std::vector<OffsetLoop<Real>> _ccwOffsetLoops;
   // clockwise (island) offset loops, these are surrounded by the counter clockwise loops
-  std::vector<OffsetLoop<Real>> m_cwOffsetLoops;
-  std::size_t totalOffsetLoopsCount() { return m_ccwOffsetLoops.size() + m_cwOffsetLoops.size(); }
+  std::vector<OffsetLoop<Real>> _cwOffsetLoops;
+  std::size_t totalOffsetLoopsCount() { return _ccwOffsetLoops.size() + _cwOffsetLoops.size(); }
   // spatial index of all the offset loops
-  std::unique_ptr<StaticSpatialIndex<Real>> m_offsetLoopsIndex;
+  std::unique_ptr<StaticSpatialIndex<Real>> _offsetLoopsIndex;
   using IndexPair = std::pair<std::size_t, std::size_t>;
   // set to keep track of already visited pairs of loops when finding intersects
-  std::unordered_set<IndexPair, internal::IndexPairHash> m_visitedLoopPairs;
+  std::unordered_set<IndexPair, internal::IndexPairHash> _visitedLoopPairs;
   // buffers to use for querying spatial indexes
-  std::vector<std::size_t> m_queryStack;
-  std::vector<std::size_t> m_queryResults;
+  std::vector<std::size_t> _queryStack;
+  std::vector<std::size_t> _queryResults;
   // slice point sets from intersects between loops
-  std::vector<SlicePointSet> m_slicePointSets;
+  std::vector<SlicePointSet> _slicePointSets;
   // lookup used to get slice points for a particular loop index (holds indexes to sets in
-  // m_slicePointSets)
-  std::vector<std::vector<std::size_t>> m_slicePointsLookup;
+  // _slicePointSets)
+  std::vector<std::vector<std::size_t>> _slicePointsLookup;
   // dissection points used to form slices for a particular loop in createSlicesFromLoop
-  std::unordered_map<std::size_t, std::vector<DissectionPoint>> m_loopDissectionPoints;
+  std::unordered_map<std::size_t, std::vector<DissectionPoint>> _loopDissectionPoints;
 };
 
 template <typename Real>
 void ParallelOffsetIslands<Real>::createOffsetLoops(const OffsetLoopSet<Real> &input,
                                                     Real absDelta) {
   // create counter clockwise offset loops
-  m_ccwOffsetLoops.clear();
+  _ccwOffsetLoops.clear();
   std::size_t parentIndex = 0;
   for (auto const &loop : input.ccwLoops) {
     auto offsets = parallelOffset(loop.polyline, absDelta);
@@ -114,21 +114,21 @@ void ParallelOffsetIslands<Real>::createOffsetLoops(const OffsetLoopSet<Real> &i
         continue;
       }
       auto index = createApproxSpatialIndex(offset);
-      m_ccwOffsetLoops.push_back({parentIndex, std::move(offset), std::move(index)});
+      _ccwOffsetLoops.push_back({parentIndex, std::move(offset), std::move(index)});
     }
     parentIndex += 1;
   }
 
   // create clockwise offset loops (note counter clockwise loops may result from outward offset)
-  m_cwOffsetLoops.clear();
+  _cwOffsetLoops.clear();
   for (auto const &loop : input.cwLoops) {
     auto offsets = parallelOffset(loop.polyline, absDelta);
     for (auto &offset : offsets) {
       auto index = createApproxSpatialIndex(offset);
       if (getArea(offset) < Real(0)) {
-        m_cwOffsetLoops.push_back({parentIndex, std::move(offset), std::move(index)});
+        _cwOffsetLoops.push_back({parentIndex, std::move(offset), std::move(index)});
       } else {
-        m_ccwOffsetLoops.push_back({parentIndex, std::move(offset), std::move(index)});
+        _ccwOffsetLoops.push_back({parentIndex, std::move(offset), std::move(index)});
       }
     }
     parentIndex += 1;
@@ -137,45 +137,45 @@ void ParallelOffsetIslands<Real>::createOffsetLoops(const OffsetLoopSet<Real> &i
 
 template <typename Real> void ParallelOffsetIslands<Real>::createOffsetLoopsIndex() {
   // create spatial index for all offset loop bounding boxes
-  m_offsetLoopsIndex = std::make_unique<StaticSpatialIndex<Real>>(totalOffsetLoopsCount());
-  for (auto const &posC : m_ccwOffsetLoops) {
+  _offsetLoopsIndex = std::make_unique<StaticSpatialIndex<Real>>(totalOffsetLoopsCount());
+  for (auto const &posC : _ccwOffsetLoops) {
     auto const &i = posC.spatialIndex;
-    m_offsetLoopsIndex->add(i.minX(), i.minY(), i.maxX(), i.maxY());
+    _offsetLoopsIndex->add(i.minX(), i.minY(), i.maxX(), i.maxY());
   }
 
-  for (auto const &negC : m_cwOffsetLoops) {
+  for (auto const &negC : _cwOffsetLoops) {
     auto const &i = negC.spatialIndex;
-    m_offsetLoopsIndex->add(i.minX(), i.minY(), i.maxX(), i.maxY());
+    _offsetLoopsIndex->add(i.minX(), i.minY(), i.maxX(), i.maxY());
   }
-  m_offsetLoopsIndex->finish();
+  _offsetLoopsIndex->finish();
 }
 
 template <typename Real> void ParallelOffsetIslands<Real>::createSlicePoints() {
-  m_visitedLoopPairs.clear();
-  m_slicePointSets.clear();
-  m_slicePointsLookup.clear();
+  _visitedLoopPairs.clear();
+  _slicePointSets.clear();
+  _slicePointsLookup.clear();
 
   // find all intersects between all offsets
   std::size_t totalOffsetCount = totalOffsetLoopsCount();
-  m_slicePointsLookup.resize(totalOffsetCount);
+  _slicePointsLookup.resize(totalOffsetCount);
   PlineIntersectsResult<Real> intrsResults;
   for (std::size_t i = 0; i < totalOffsetCount; ++i) {
     auto const &loop1 = getOffsetLoop(i);
     auto const &index1 = loop1.spatialIndex;
-    m_queryResults.clear();
-    m_offsetLoopsIndex->query(index1.minX(), index1.minY(), index1.maxX(), index1.maxY(),
-                              m_queryResults, m_queryStack);
+    _queryResults.clear();
+    _offsetLoopsIndex->query(index1.minX(), index1.minY(), index1.maxX(), index1.maxY(),
+                              _queryResults, _queryStack);
 
-    for (std::size_t j : m_queryResults) {
+    for (std::size_t j : _queryResults) {
       // skip same index (no self intersects among the offset loops)
       if (i == j) {
         continue;
       }
       // skip reversed index order (would end up comparing the same loops)
-      if (m_visitedLoopPairs.find({j, i}) != m_visitedLoopPairs.end()) {
+      if (_visitedLoopPairs.find({j, i}) != _visitedLoopPairs.end()) {
         continue;
       }
-      m_visitedLoopPairs.emplace(i, j);
+      _visitedLoopPairs.emplace(i, j);
 
       auto const &loop2 = getOffsetLoop(j);
       intrsResults.intersects.clear();
@@ -183,8 +183,8 @@ template <typename Real> void ParallelOffsetIslands<Real>::createSlicePoints() {
       // finding intersects
       findIntersects(loop1.polyline, loop2.polyline, index1, intrsResults);
       if (intrsResults.hasIntersects()) {
-        m_slicePointSets.emplace_back();
-        auto &slicePointSet = m_slicePointSets.back();
+        _slicePointSets.emplace_back();
+        auto &slicePointSet = _slicePointSets.back();
         slicePointSet.loopIndex1 = i;
         slicePointSet.loopIndex2 = j;
         for (auto &intr : intrsResults.intersects) {
@@ -203,8 +203,8 @@ template <typename Real> void ParallelOffsetIslands<Real>::createSlicePoints() {
           }
         }
 
-        m_slicePointsLookup[i].push_back(m_slicePointSets.size() - 1);
-        m_slicePointsLookup[j].push_back(m_slicePointSets.size() - 1);
+        _slicePointsLookup[i].push_back(_slicePointSets.size() - 1);
+        _slicePointsLookup[j].push_back(_slicePointSets.size() - 1);
       }
     }
   }
@@ -214,14 +214,14 @@ template <typename Real>
 bool ParallelOffsetIslands<Real>::pointOnOffsetValid(std::size_t skipIndex, const Vector2<Real> &pt,
                                                      Real absDelta) {
   // test distance against input polylines
-  std::size_t const inputTotalCount = m_inputSet->ccwLoops.size() + m_inputSet->cwLoops.size();
+  std::size_t const inputTotalCount = _inputSet->ccwLoops.size() + _inputSet->cwLoops.size();
   for (std::size_t i = 0; i < inputTotalCount; ++i) {
     if (i == skipIndex) {
       continue;
     }
     auto const &parentLoop = getParentLoop(i);
     if (!internal::pointValidForOffset(parentLoop.polyline, absDelta, parentLoop.spatialIndex, pt,
-                                       m_queryStack)) {
+                                       _queryStack)) {
       return false;
     }
   }
@@ -235,32 +235,32 @@ void ParallelOffsetIslands<Real>::createSlicesFromLoop(std::size_t loopIndex, Re
   OffsetLoop<Real> const &offsetLoop = getOffsetLoop(loopIndex);
   std::size_t const parentIndex = offsetLoop.parentLoopIndex;
   Polyline<Real> const &pline = offsetLoop.polyline;
-  m_loopDissectionPoints.clear();
-  for (auto const &setIndex : m_slicePointsLookup[loopIndex]) {
-    auto const &set = m_slicePointSets[setIndex];
+  _loopDissectionPoints.clear();
+  for (auto const &setIndex : _slicePointsLookup[loopIndex]) {
+    auto const &set = _slicePointSets[setIndex];
     bool isFirstIndex = loopIndex == set.loopIndex1;
     if (isFirstIndex) {
       for (auto const &p : set.slicePoints) {
-        m_loopDissectionPoints[p.intr.sIndex1].push_back({set.loopIndex2, p.intr.pos});
+        _loopDissectionPoints[p.intr.sIndex1].push_back({set.loopIndex2, p.intr.pos});
       }
     } else {
       for (auto const &p : set.slicePoints) {
-        m_loopDissectionPoints[p.intr.sIndex2].push_back({set.loopIndex1, p.intr.pos});
+        _loopDissectionPoints[p.intr.sIndex2].push_back({set.loopIndex1, p.intr.pos});
       }
     }
   }
 
   // sort points by distance from start vertex
-  for (auto &kvp : m_loopDissectionPoints) {
+  for (auto &kvp : _loopDissectionPoints) {
     Vector2<Real> startPos = pline[kvp.first].pos();
     auto cmp = [&](DissectionPoint const &p1, DissectionPoint const &p2) {
-      return distSquared(p1.pos, startPos) < distSquared(p2.pos, startPos);
+      return squared_distance(p1.pos, startPos) < squared_distance(p2.pos, startPos);
     };
     std::sort(kvp.second.begin(), kvp.second.end(), cmp);
   }
 
 
-  for (auto const &kvp : m_loopDissectionPoints) {
+  for (auto const &kvp : _loopDissectionPoints) {
     // start index for the slice we're about to build
     std::size_t sIndex = kvp.first;
     // self intersect list for this start index
@@ -283,7 +283,7 @@ void ParallelOffsetIslands<Real>::createSlicesFromLoop(std::size_t loopIndex, Re
         // update prevVertex for next loop iteration
         prevVertex = split.splitVertex;
 
-        if (fuzzyEqual(split.updatedStart.pos(), split.splitVertex.pos(),
+        if (fuzzy::equal(split.updatedStart.pos(), split.splitVertex.pos(),
                        utils::realPrecision<Real>())) {
           continue;
         }
@@ -317,7 +317,7 @@ void ParallelOffsetIslands<Real>::createSlicesFromLoop(std::size_t loopIndex, Re
     const std::size_t maxLoopCount = pline.size();
     while (true) {
       if (loopCount++ > maxLoopCount) {
-        CAVC_ASSERT(false, "Bug detected, should never loop this many times!");
+        PLLIB_ASSERT(false, "Bug detected, should never loop this many times!");
         // break to avoid infinite loop
         break;
       }
@@ -325,13 +325,13 @@ void ParallelOffsetIslands<Real>::createSlicesFromLoop(std::size_t loopIndex, Re
       internal::addOrReplaceIfSamePos(currSlice.pline, pline[index]);
 
       // check if segment that starts at vertex we just added has an intersect
-      auto nextIntr = m_loopDissectionPoints.find(index);
-      if (nextIntr != m_loopDissectionPoints.end()) {
+      auto nextIntr = _loopDissectionPoints.find(index);
+      if (nextIntr != _loopDissectionPoints.end()) {
         // there is an intersect, slice is done
         Vector2<Real> const &intersectPos = nextIntr->second[0].pos;
 
         // trim last added vertex and add final intersect position
-        PlineVertex<Real> endVertex = PlineVertex<Real>(intersectPos, Real(0));
+        PLVertex<Real> endVertex = PLVertex<Real>(intersectPos, Real(0));
         std::size_t nextIndex = utils::nextWrappingIndex(index, pline);
         SplitResult<Real> split =
             splitAtPoint(currSlice.pline.lastVertex(), pline[nextIndex], intersectPos);
@@ -359,7 +359,7 @@ void ParallelOffsetIslands<Real>::createSlicesFromLoop(std::size_t loopIndex, Re
 template <typename Real>
 OffsetLoopSet<Real> ParallelOffsetIslands<Real>::compute(const OffsetLoopSet<Real> &input,
                                                          Real offsetDelta) {
-  m_inputSet = &input;
+  _inputSet = &input;
   OffsetLoopSet<Real> result;
   Real absDelta = std::abs(offsetDelta);
   createOffsetLoops(input, absDelta);
@@ -376,14 +376,14 @@ OffsetLoopSet<Real> ParallelOffsetIslands<Real>::compute(const OffsetLoopSet<Rea
   std::vector<Polyline<Real>> resultSlices;
 
   for (std::size_t i = 0; i < totalOffsetsCount; ++i) {
-    if (m_slicePointsLookup[i].size() == 0) {
+    if (_slicePointsLookup[i].size() == 0) {
       // no intersects but still must test distance of one vertex position since it may be inside
       // another offset (completely eclipsed by island offset)
       auto &loop = getOffsetLoop(i);
       if (!pointOnOffsetValid(loop.parentLoopIndex, loop.polyline[0].pos(), absDelta)) {
         continue;
       }
-      if (i < m_ccwOffsetLoops.size()) {
+      if (i < _ccwOffsetLoops.size()) {
         result.ccwLoops.push_back(std::move(loop));
       } else {
         result.cwLoops.push_back(std::move(loop));

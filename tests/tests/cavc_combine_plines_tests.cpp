@@ -239,10 +239,10 @@ TEST(cavc_combine_plinesTests, combine_with_self_invariants) {
                                             {32.195313, 1.25, 0}, {31.5, 1.25, -0.414214},
                                             {31, 1.75, 0},        {29, 1.75, -0.414214},
                                             {28.5, 1.25, 0},      {27.804688, 1.25, 0.414214}};
-  std::vector<cavc_vertex> revPlineVertexes = plineVertexes;
-  reverseDirection(revPlineVertexes);
+  std::vector<cavc_vertex> revPLVertexes = plineVertexes;
+  reverseDirection(revPLVertexes);
   cavc_pline *pline = plineFromVertexes(plineVertexes, true);
-  cavc_pline *revPline = plineFromVertexes(revPlineVertexes, true);
+  cavc_pline *revPline = plineFromVertexes(revPLVertexes, true);
 
   cavc_pline_list *remaining = nullptr;
   cavc_pline_list *subtracted = nullptr;
@@ -265,7 +265,7 @@ TEST(cavc_combine_plinesTests, combine_with_self_invariants) {
   resultVertexes.clear();
   resultVertexes.resize(cavc_pline_vertex_count(combineResult));
   cavc_pline_vertex_data(combineResult, &resultVertexes[0]);
-  ASSERT_THAT(resultVertexes, t::Pointwise(VertexEqual(), revPlineVertexes));
+  ASSERT_THAT(resultVertexes, t::Pointwise(VertexEqual(), revPLVertexes));
   cavc_pline_list_delete(remaining);
   cavc_pline_list_delete(subtracted);
 
@@ -312,7 +312,7 @@ TEST(cavc_combine_plinesTests, combine_with_self_invariants) {
   resultVertexes.clear();
   resultVertexes.resize(cavc_pline_vertex_count(combineResult));
   cavc_pline_vertex_data(combineResult, &resultVertexes[0]);
-  ASSERT_THAT(resultVertexes, t::Pointwise(VertexEqual(), revPlineVertexes));
+  ASSERT_THAT(resultVertexes, t::Pointwise(VertexEqual(), revPLVertexes));
   cavc_pline_list_delete(remaining);
   cavc_pline_list_delete(subtracted);
 

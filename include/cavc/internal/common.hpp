@@ -6,7 +6,7 @@
 
 namespace cavc {
 namespace internal {
-#define CAVC_ASSERT(cond, msg) assert(cond &&msg)
+#define PLLIB_ASSERT(cond, msg) assert(cond &&msg)
 
 template <typename T> inline void hashCombine(std::size_t &seed, const T &val) {
   // copied from boost hash_combine, it's not the best hash combine but it's very simple

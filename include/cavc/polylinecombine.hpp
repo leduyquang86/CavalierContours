@@ -19,7 +19,7 @@ template <typename Real> struct ProcessForCombineResult {
   bool pline2IsCW = false;
   bool completelyCoincident() const {
     return coincidentSliceStartPoints.size() == 1 && coincidentSliceEndPoints.size() == 1 &&
-           fuzzyEqual(coincidentSliceStartPoints[0].pos, coincidentSliceEndPoints[0].pos,
+           fuzzy::equal(coincidentSliceStartPoints[0].pos, coincidentSliceEndPoints[0].pos,
                       utils::realPrecision<Real>());
   }
 
@@ -35,7 +35,7 @@ ProcessForCombineResult<Real>
 processForCombine(Polyline<Real> const &pline1, Polyline<Real> const &pline2,
                   StaticSpatialIndex<Real, N> const &pline1SpatialIndex) {
 
-  CAVC_ASSERT(pline1.isClosed() && pline2.isClosed(), "combining only works with closed polylines");
+  PLLIB_ASSERT(pline1.isClosed() && pline2.isClosed(), "combining only works with closed polylines");
 
   PlineIntersectsResult<Real> intrs;
   findIntersects(pline1, pline2, pline1SpatialIndex, intrs);
@@ -117,7 +117,7 @@ void sliceAtIntersects(Polyline<Real> const &pline,
   for (auto &kvp : intersectsLookup) {
     Vector2<Real> startPos = pline[kvp.first].pos();
     auto cmp = [&](SlicePoint<Real> const &i1, SlicePoint<Real> const &i2) {
-      return distSquared(i1.pos, startPos) < distSquared(i2.pos, startPos);
+      return squared_distance(i1.pos, startPos) < squared_distance(i2.pos, startPos);
     };
     std::sort(kvp.second.begin(), kvp.second.end(), cmp);
   }
@@ -148,7 +148,7 @@ void sliceAtIntersects(Polyline<Real> const &pline,
           continue;
         }
 
-        if (fuzzyEqual(split.updatedStart.pos(), split.splitVertex.pos(),
+        if (fuzzy::equal(split.updatedStart.pos(), split.splitVertex.pos(),
                        utils::realPrecision<Real>())) {
           continue;
         }
@@ -181,7 +181,7 @@ void sliceAtIntersects(Polyline<Real> const &pline,
     const std::size_t maxLoopCount = pline.size();
     while (true) {
       if (loopCount++ > maxLoopCount) {
-        CAVC_ASSERT(false, "Bug detected, should never loop this many times!");
+        PLLIB_ASSERT(false, "Bug detected, should never loop this many times!");
         // break to avoid infinite loop
         break;
       }
@@ -195,7 +195,7 @@ void sliceAtIntersects(Polyline<Real> const &pline,
         Vector2<Real> const &intersectPos = nextIntr->second[0].pos;
 
         // trim last added vertex and add final intersect position
-        PlineVertex<Real> endVertex = PlineVertex<Real>(intersectPos, Real(0));
+        PLVertex<Real> endVertex = PLVertex<Real>(intersectPos, Real(0));
         std::size_t nextIndex = utils::nextWrappingIndex(index, pline);
         SplitResult<Real> split =
             splitAtPoint(currSlice.lastVertex(), pline[nextIndex], intersectPos);
@@ -345,7 +345,7 @@ stitchOrderedSlicesIntoClosedPolylines(std::vector<Polyline<Real>> const &slices
     const std::size_t maxLoopCount = slices.size();
     while (true) {
       if (loopCount++ > maxLoopCount) {
-        CAVC_ASSERT(false, "Bug detected, should never loop this many times!");
+        PLLIB_ASSERT(false, "Bug detected, should never loop this many times!");
         // break to avoid infinite loop
         break;
       }
@@ -412,7 +412,7 @@ template <typename Real> struct CombineResult {
 template <typename Real>
 CombineResult<Real> combinePolylines(Polyline<Real> const &plineA, Polyline<Real> const &plineB,
                                      PlineCombineMode combineMode) {
-  CAVC_ASSERT(plineA.isClosed() && plineB.isClosed(), "combining only supports closed polylines");
+  PLLIB_ASSERT(plineA.isClosed() && plineB.isClosed(), "combining only supports closed polylines");
   using namespace internal;
 
   auto plASpatialIndex = createApproxSpatialIndex(plineA);

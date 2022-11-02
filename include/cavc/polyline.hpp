@@ -16,58 +16,58 @@ namespace cavc {
 template <typename Real> class Polyline {
 public:
   /// Construct an empty open polyline.
-  Polyline() : m_isClosed(false), m_vertexes() {}
+  Polyline() : _isClosed(false), _vertexes() {}
 
-  using PVertex = PlineVertex<Real>;
-  inline PVertex const &operator[](std::size_t i) const { return m_vertexes[i]; }
-  inline PVertex &operator[](std::size_t i) { return m_vertexes[i]; }
+  using PVertex = PLVertex<Real>;
+  inline PVertex const &operator[](std::size_t i) const { return _vertexes[i]; }
+  inline PVertex &operator[](std::size_t i) { return _vertexes[i]; }
 
-  bool isClosed() const { return m_isClosed; }
-  bool &isClosed() { return m_isClosed; }
+  bool isClosed() const { return _isClosed; }
+  bool &isClosed() { return _isClosed; }
 
-  void addVertex(Real x, Real y, Real bulge) { m_vertexes.emplace_back(x, y, bulge); }
+  void addVertex(Real x, Real y, Real bulge) { _vertexes.emplace_back(x, y, bulge); }
   void addVertex(PVertex vertex) { addVertex(vertex.x(), vertex.y(), vertex.bulge()); }
 
-  std::size_t size() const { return m_vertexes.size(); }
+  std::size_t size() const { return _vertexes.size(); }
 
-  PVertex const &lastVertex() const { return m_vertexes.back(); }
-  PVertex &lastVertex() { return m_vertexes.back(); }
+  PVertex const &lastVertex() const { return _vertexes.back(); }
+  PVertex &lastVertex() { return _vertexes.back(); }
 
-  std::vector<PVertex> &vertexes() { return m_vertexes; }
-  std::vector<PVertex> const &vertexes() const { return m_vertexes; }
+  std::vector<PVertex> &vertexes() { return _vertexes; }
+  std::vector<PVertex> const &vertexes() const { return _vertexes; }
 
   /// Iterate the segment indices of the polyline. visitor function is invoked for each segment
   /// index pair, stops when all indices have been visited or visitor returns false. visitor
   /// signature is bool(std::size_t, std::size_t).
   template <typename VisitorF> void visitSegIndices(VisitorF &&visitor) const {
-    if (m_vertexes.size() < 2) {
+    if (_vertexes.size() < 2) {
       return;
     }
     std::size_t i;
     std::size_t j;
-    if (m_isClosed) {
+    if (_isClosed) {
       i = 0;
-      j = m_vertexes.size() - 1;
+      j = _vertexes.size() - 1;
     } else {
       i = 1;
       j = 0;
     }
 
-    while (i < m_vertexes.size() && visitor(j, i)) {
+    while (i < _vertexes.size() && visitor(j, i)) {
       j = i;
       i = i + 1;
     }
   }
 
 private:
-  bool m_isClosed;
-  std::vector<PVertex> m_vertexes;
+  bool _isClosed;
+  std::vector<PVertex> _vertexes;
 };
 
 /// Scale X and Y of polyline by scaleFactor.
 template <typename Real> void scalePolyline(Polyline<Real> &pline, Real scaleFactor) {
   for (auto &v : pline.vertexes()) {
-    v = PlineVertex<Real>(scaleFactor * v.pos(), v.bulge());
+    v = PLVertex<Real>(scaleFactor * v.pos(), v.bulge());
   }
 }
 
@@ -75,7 +75,7 @@ template <typename Real> void scalePolyline(Polyline<Real> &pline, Real scaleFac
 template <typename Real>
 void translatePolyline(Polyline<Real> &pline, Vector2<Real> const &offset) {
   for (auto &v : pline.vertexes()) {
-    v = PlineVertex<Real>(offset.x() + v.x(), offset.y() + v.y(), v.bulge());
+    v = PLVertex<Real>(offset.x() + v.x(), offset.y() + v.y(), v.bulge());
   }
 }
 
@@ -90,7 +90,7 @@ template <typename Real> AABB<Real> getExtents(Polyline<Real> const &pline) {
   AABB<Real> result{pline[0].x(), pline[0].y(), pline[0].x(), pline[0].y()};
 
   auto visitor = [&](std::size_t i, std::size_t j) {
-    PlineVertex<Real> const &v1 = pline[i];
+    PLVertex<Real> const &v1 = pline[i];
     if (v1.bulgeIsZero()) {
       if (v1.x() < result.xMin)
         result.xMin = v1.x();
@@ -101,7 +101,7 @@ template <typename Real> AABB<Real> getExtents(Polyline<Real> const &pline) {
       if (v1.y() > result.yMax)
         result.yMax = v1.y();
     } else {
-      PlineVertex<Real> const &v2 = pline[j];
+      PLVertex<Real> const &v2 = pline[j];
       auto arc = arcRadiusAndCenter(v1, v2);
 
       Real startAngle = angle(arc.center, v1.pos());
@@ -187,7 +187,7 @@ template <typename Real> Real getArea(Polyline<Real> const &pline) {
       Real doubleSectorArea = sweepAngle * radius * radius;
       Real doubleTriangleArea = triangleBase * triangleHeight;
       Real doubleArcSegArea = doubleSectorArea - doubleTriangleArea;
-      if (pline[i].bulgeIsNeg()) {
+      if (pline[i].bulgeIsNegative()) {
         doubleArcSegArea = -doubleArcSegArea;
       }
 
@@ -214,24 +214,24 @@ public:
   }
 
   void compute(Polyline<Real> const &pline, Vector2<Real> const &point) {
-    CAVC_ASSERT(pline.vertexes().size() > 0, "empty polyline has no closest point");
+    PLLIB_ASSERT(pline.vertexes().size() > 0, "empty polyline has no closest point");
     if (pline.vertexes().size() == 1) {
-      m_index = 0;
-      m_distance = length(point - pline[0].pos());
-      m_point = pline[0].pos();
+      _index = 0;
+      _distance = length(point - pline[0].pos());
+      _point = pline[0].pos();
       return;
     }
 
-    m_distance = std::numeric_limits<Real>::infinity();
+    _distance = std::numeric_limits<Real>::infinity();
 
     auto visitor = [&](std::size_t i, std::size_t j) {
       Vector2<Real> cp = closestPointOnSeg(pline[i], pline[j], point);
       auto diffVec = point - cp;
       Real dist2 = dot(diffVec, diffVec);
-      if (dist2 < m_distance) {
-        m_index = i;
-        m_point = cp;
-        m_distance = dist2;
+      if (dist2 < _distance) {
+        _index = i;
+        _point = cp;
+        _distance = dist2;
       }
 
       // iterate all segments
@@ -240,28 +240,28 @@ public:
 
     pline.visitSegIndices(visitor);
     // check if index is offset (due to point being ontop of vertex)
-    std::size_t nextIndex = utils::nextWrappingIndex(m_index, pline);
-    if (fuzzyEqual(m_point, pline[nextIndex].pos())) {
-      m_index = nextIndex;
+    std::size_t nextIndex = utils::nextWrappingIndex(_index, pline);
+    if (fuzzy::equal(_point, pline[nextIndex].pos())) {
+      _index = nextIndex;
     }
-    if (!pline.isClosed() && pline.size() > 1 && m_index == pline.size() - 1) {
-      m_index -= 1;
+    if (!pline.isClosed() && pline.size() > 1 && _index == pline.size() - 1) {
+      _index -= 1;
     }
     // we used the squared distance while iterating and comparing, take sqrt for actual distance
-    m_distance = std::sqrt(m_distance);
+    _distance = std::sqrt(_distance);
   }
 
   /// Starting vertex index of the segment that has the closest point
-  std::size_t index() const { return m_index; }
+  std::size_t index() const { return _index; }
   /// The closest point
-  Vector2<Real> const &point() const { return m_point; }
+  Vector2<Real> const &point() const { return _point; }
   /// Distance between the points
-  Real distance() const { return m_distance; }
+  Real distance() const { return _distance; }
 
 private:
-  std::size_t m_index = 0;
-  Vector2<Real> m_point = Vector2<Real>::zero();
-  Real m_distance;
+  std::size_t _index = 0;
+  Vector2<Real> _point = Vector2<Real>::zero();
+  Real _distance;
 };
 
 /// Returns a new polyline with all arc segments converted to line segments, error is the maximum
@@ -293,7 +293,7 @@ Polyline<Real> convertArcsToLines(Polyline<Real> const &pline, Real error) {
       // update segment subangle for equal length segments
       segmentSubAngle = deltaAngle / segmentCount;
 
-      if (v1.bulgeIsNeg()) {
+      if (v1.bulgeIsNegative()) {
         segmentSubAngle = -segmentSubAngle;
       }
       // add the start point
@@ -335,7 +335,7 @@ Polyline<Real> pruneSingularities(Polyline<Real> const &pline, Real epsilon) {
   result.addVertex(pline[0]);
 
   for (std::size_t i = 1; i < pline.size(); ++i) {
-    if (fuzzyEqual(result.lastVertex().pos(), pline[i].pos(), epsilon)) {
+    if (fuzzy::equal(result.lastVertex().pos(), pline[i].pos(), epsilon)) {
       result.lastVertex().bulge() = pline[i].bulge();
     } else {
       result.addVertex(pline[i]);
@@ -343,7 +343,7 @@ Polyline<Real> pruneSingularities(Polyline<Real> const &pline, Real epsilon) {
   }
 
   if (result.isClosed() && result.size() > 1) {
-    if (fuzzyEqual(result.lastVertex().pos(), result[0].pos(), epsilon)) {
+    if (fuzzy::equal(result.lastVertex().pos(), result[0].pos(), epsilon)) {
       result.vertexes().pop_back();
     }
   }
@@ -374,7 +374,7 @@ template <typename Real> void invertDirection(Polyline<Real> &pline) {
 /// createFastApproxBoundingBox.
 template <typename Real>
 StaticSpatialIndex<Real> createApproxSpatialIndex(Polyline<Real> const &pline) {
-  CAVC_ASSERT(pline.size() > 1, "need at least 2 vertexes to form segments for spatial index");
+  PLLIB_ASSERT(pline.size() > 1, "need at least 2 vertexes to form segments for spatial index");
 
   std::size_t segmentCount = pline.isClosed() ? pline.size() : pline.size() - 1;
   StaticSpatialIndex<Real> result(segmentCount);
@@ -437,12 +437,12 @@ int getWindingNumber(Polyline<Real> const &pline, Vector2<Real> const &point) {
   // Helper function to determine if point is inside an arc sector area
   auto distToArcCenterLessThanRadius = [](const auto &v1, const auto &v2, const auto &pt) {
     auto arc = arcRadiusAndCenter(v1, v2);
-    Real dist2 = distSquared(arc.center, pt);
+    Real dist2 = squared_distance(arc.center, pt);
     return dist2 < arc.radius * arc.radius;
   };
 
   auto arcVisitor = [&](const auto &v1, const auto &v2) {
-    bool isCCW = v1.bulgeIsPos();
+    bool isCCW = v1.bulgeIsPositive();
     // to robustly handle the case where point is on the chord of an x axis aligned arc we must
     // count it as left going one direction and not left going the other (similar to using <= for
     // end points)
@@ -543,14 +543,14 @@ int getWindingNumber(Polyline<Real> const &pline, Vector2<Real> const &point) {
 
 namespace internal {
 template <typename Real>
-void addOrReplaceIfSamePos(Polyline<Real> &pline, PlineVertex<Real> const &vertex,
+void addOrReplaceIfSamePos(Polyline<Real> &pline, PLVertex<Real> const &vertex,
                            Real epsilon = utils::realPrecision<Real>()) {
   if (pline.size() == 0) {
     pline.addVertex(vertex);
     return;
   }
 
-  if (fuzzyEqual(pline.lastVertex().pos(), vertex.pos(), epsilon)) {
+  if (fuzzy::equal(pline.lastVertex().pos(), vertex.pos(), epsilon)) {
     pline.lastVertex().bulge() = vertex.bulge();
     return;
   }

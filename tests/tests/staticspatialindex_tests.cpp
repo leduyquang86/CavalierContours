@@ -68,8 +68,8 @@ std::ostream &operator<<(std::ostream &os, Box const &box) {
 }
 
 bool operator==(Box const &left, Box const &right) {
-  return fuzzyEqual(left.minX, right.minX) && fuzzyEqual(left.minY, right.minY) &&
-         fuzzyEqual(left.maxX, right.maxX) && fuzzyEqual(left.maxY, right.maxY);
+  return fuzzy::equal(left.minX, right.minX) && fuzzy::equal(left.minY, right.minY) &&
+         fuzzy::equal(left.maxX, right.maxX) && fuzzy::equal(left.maxY, right.maxY);
 }
 
 TEST(StaticSpatialIndexTests, index) {

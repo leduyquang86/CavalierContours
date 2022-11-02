@@ -39,29 +39,29 @@ intrLineSeg2LineSeg2(Vector2<Real> const &u1, Vector2<Real> const &u2, Vector2<R
   IntrLineSeg2LineSeg2Result<Real> result;
   Vector2<Real> u = u2 - u1;
   Vector2<Real> v = v2 - v1;
-  Real d = perpDot(u, v);
+  Real d = cross(u, v);
 
   Vector2<Real> w = u1 - v1;
 
   // Test if point is inside a segment, NOTE: assumes points are aligned
   auto isInSegment = [](Vector2<Real> const &pt, Vector2<Real> const &segStart,
                         Vector2<Real> const &segEnd) {
-    if (utils::fuzzyEqual(segStart.x(), segEnd.x())) {
+    if (utils::fuzzy::equal(segStart.x(), segEnd.x())) {
       // vertical segment, test y coordinate
       auto minMax = std::minmax({segStart.y(), segEnd.y()});
-      return utils::fuzzyInRange(minMax.first, pt.y(), minMax.second);
+      return utils::fuzzy::inrange(minMax.first, pt.y(), minMax.second);
     }
 
     // else just test x coordinate
     auto minMax = std::minmax({segStart.x(), segEnd.x()});
-    return utils::fuzzyInRange(minMax.first, pt.x(), minMax.second);
+    return utils::fuzzy::inrange(minMax.first, pt.x(), minMax.second);
   };
 
   // threshold check here to avoid almost parallel lines resulting in very distant intersection
   if (std::abs(d) > utils::realThreshold<Real>()) {
     // segments not parallel or collinear
-    result.t0 = perpDot(v, w) / d;
-    result.t1 = perpDot(u, w) / d;
+    result.t0 = cross(v, w) / d;
+    result.t1 = cross(u, w) / d;
     result.point = v1 + result.t1 * v;
     if (result.t0 + utils::realThreshold<Real>() < Real(0) ||
         result.t0 > Real(1) + utils::realThreshold<Real>() ||
@@ -73,19 +73,19 @@ intrLineSeg2LineSeg2(Vector2<Real> const &u1, Vector2<Real> const &u2, Vector2<R
     }
   } else {
     // segments are parallel or collinear
-    Real a = perpDot(u, w);
-    Real b = perpDot(v, w);
+    Real a = cross(u, w);
+    Real b = cross(v, w);
     // threshold check here, we consider almost parallel lines to be parallel
     if (std::abs(a) > utils::realThreshold<Real>() || std::abs(b) > utils::realThreshold<Real>()) {
       // parallel and not collinear so no intersect
       result.intrType = LineSeg2LineSeg2IntrType::None;
     } else {
       // either collinear or degenerate (segments are single points)
-      bool uIsPoint = fuzzyEqual(u1, u2);
-      bool vIsPoint = fuzzyEqual(v1, v2);
+      bool uIsPoint = fuzzy::equal(u1, u2);
+      bool vIsPoint = fuzzy::equal(v1, v2);
       if (uIsPoint && vIsPoint) {
         // both segments are just points
-        if (fuzzyEqual(u1, v1)) {
+        if (fuzzy::equal(u1, v1)) {
           // same point
           result.point = u1;
           result.intrType = LineSeg2LineSeg2IntrType::True;

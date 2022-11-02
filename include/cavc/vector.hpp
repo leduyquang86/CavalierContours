@@ -10,62 +10,62 @@ public:
 
   Vector(std::initializer_list<Real> values) {
     if (N == values.size()) {
-      std::copy(values.begin(), values.end(), m_data.begin());
+      std::copy(values.begin(), values.end(), _data.begin());
     } else if (N > values.size()) {
-      std::copy(values.begin(), values.end(), m_data.begin());
-      std::fill(m_data.begin() + static_cast<std::ptrdiff_t>(values.size()), m_data.end(), Real(0));
+      std::copy(values.begin(), values.end(), _data.begin());
+      std::fill(_data.begin() + static_cast<std::ptrdiff_t>(values.size()), _data.end(), Real(0));
     } else {
-      std::copy(values.begin(), values.begin() + N, m_data.begin());
+      std::copy(values.begin(), values.begin() + N, _data.begin());
     }
   }
 
   Vector(Real x, Real y) {
     static_assert(N == 2, "constructor for Vector2 only");
-    m_data[0] = x;
-    m_data[1] = y;
+    _data[0] = x;
+    _data[1] = y;
   }
 
   Vector(Real x, Real y, Real z) {
     static_assert(N == 3, "constructor for Vector3 only");
-    m_data[0] = x;
-    m_data[1] = y;
-    m_data[2] = z;
+    _data[0] = x;
+    _data[1] = y;
+    _data[2] = z;
   }
 
-  inline Real const &operator[](std::size_t i) const { return m_data[i]; }
+  inline Real const &operator[](std::size_t i) const { return _data[i]; }
 
-  inline Real &operator[](std::size_t i) { return m_data[i]; }
+  inline Real &operator[](std::size_t i) { return _data[i]; }
 
-  inline bool operator==(Vector const &vec) const { return m_data == vec.m_data; }
+  inline bool operator==(Vector const &vec) const { return _data == vec._data; }
 
-  inline bool operator!=(Vector const &vec) const { return m_data != vec.m_data; }
+  inline bool operator!=(Vector const &vec) const { return _data != vec._data; }
 
-  inline bool operator<(Vector const &vec) const { return m_data < vec.m_data; }
+  inline bool operator<(Vector const &vec) const { return _data < vec._data; }
 
-  inline bool operator<=(Vector const &vec) const { return m_data <= vec.m_data; }
+  inline bool operator<=(Vector const &vec) const { return _data <= vec._data; }
 
-  inline bool operator>(Vector const &vec) const { return m_data > vec.m_data; }
+  inline bool operator>(Vector const &vec) const { return _data > vec._data; }
 
-  inline bool operator>=(Vector const &vec) const { return m_data >= vec.m_data; }
+  inline bool operator>=(Vector const &vec) const { return _data >= vec._data; }
 
-  void makeZero() { std::fill(m_data.begin(), m_data.end(), Real(0)); }
+  void make_zero() { std::fill(_data.begin(), _data.end(), Real(0)); }
 
-  void makeOnes() { std::fill(m_data.begin(), m_data.end(), Real(1)); }
+  void make_ones() { std::fill(_data.begin(), _data.end(), Real(1)); }
 
   void makeUnit(std::size_t d) {
-    std::fill(m_data.begin(), m_data.end(), Real(0));
-    m_data[d] = Real(1);
+    std::fill(_data.begin(), _data.end(), Real(0));
+    _data[d] = Real(1);
   }
 
   static Vector zero() {
     Vector v;
-    v.makeZero();
+    v.make_zero();
     return v;
   }
 
   static Vector ones() {
     Vector v;
-    v.makeOnes();
+    v.make_ones();
     return v;
   }
 
@@ -77,40 +77,40 @@ public:
 
   Real &x() {
     static_assert(N >= 1, "N >= 1 to access x");
-    return m_data[0];
+    return _data[0];
   }
 
   Real x() const {
     static_assert(N >= 1, "N >= 1 to access x");
-    return m_data[0];
+    return _data[0];
   }
 
   Real &y() {
     static_assert(N >= 2, "N >= 2 to access y");
-    return m_data[1];
+    return _data[1];
   }
 
   Real y() const {
     static_assert(N >= 2, "N >= 2 to access y");
-    return m_data[1];
+    return _data[1];
   }
 
   Real &z() {
     static_assert(N >= 3, "N >= 3 to access z");
-    return m_data[2];
+    return _data[2];
   }
 
   Real z() const {
     static_assert(N >= 3, "N >= 3 to access z");
-    return m_data[2];
+    return _data[2];
   }
 
 protected:
-  std::array<Real, N> m_data;
+  std::array<Real, N> _data;
 };
 
 template <typename Real, std::size_t N>
-bool fuzzyZero(Vector<Real, N> const &v, Real epsilon = utils::realThreshold<Real>()) {
+bool fuzzy::zero(Vector<Real, N> const &v, Real epsilon = utils::realThreshold<Real>()) {
   bool allCompAreZero = std::abs(v[0]) < epsilon;
   for (std::size_t i = 1; i < N; ++i) {
     allCompAreZero = allCompAreZero && std::abs(v[i]) < epsilon;
@@ -120,10 +120,10 @@ bool fuzzyZero(Vector<Real, N> const &v, Real epsilon = utils::realThreshold<Rea
 }
 
 template <typename Real, std::size_t N>
-bool fuzzyEqual(Vector<Real, N> const &v1, Vector<Real, N> const &v2,
+bool fuzzy::equal(Vector<Real, N> const &v1, Vector<Real, N> const &v2,
                 Real epsilon = utils::realThreshold<Real>()) {
   for (std::size_t i = 0; i < N; ++i) {
-    if (!utils::fuzzyEqual(v1[i], v2[i], epsilon)) {
+    if (!utils::fuzzy::equal(v1[i], v2[i], epsilon)) {
       return false;
     }
   }
@@ -257,7 +257,7 @@ template <std::size_t N, typename Real> Real length(Vector<Real, N> const &v) {
 }
 
 template <std::size_t N, typename Real> Real normalize(Vector<Real, N> &v) {
-  CAVC_ASSERT(!fuzzyZero(v), "normalize not defined for zero vector");
+  PLLIB_ASSERT(!fuzzy::zero(v), "normalize not defined for zero vector");
   Real length = std::sqrt(dot(v, v));
   v /= length;
   return length;

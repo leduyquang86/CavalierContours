@@ -12,86 +12,86 @@ namespace cavc {
 template <typename Real, std::size_t NodeSize = 16> class StaticSpatialIndex {
 public:
   StaticSpatialIndex(std::size_t numItems) {
-    CAVC_ASSERT(numItems > 0, "number of items must be greater than 0");
+    PLLIB_ASSERT(numItems > 0, "number of items must be greater than 0");
     static_assert(NodeSize >= 2 && NodeSize <= 65535, "node size must be between 2 and 65535");
     // calculate the total number of nodes in the R-tree to allocate space for
     // and the index of each tree level (used in search later)
-    m_numItems = numItems;
+    _numItems = numItems;
     std::size_t n = numItems;
     std::size_t numNodes = numItems;
 
-    m_numLevels = computeNumLevels(numItems);
-    m_levelBounds = std::unique_ptr<std::size_t[]>(new std::size_t[m_numLevels]);
-    m_levelBounds[0] = n * 4;
+    _numLevels = computeNumLevels(numItems);
+    _levelBounds = std::unique_ptr<std::size_t[]>(new std::size_t[_numLevels]);
+    _levelBounds[0] = n * 4;
     // now populate level bounds and numNodes
     std::size_t i = 1;
     do {
       n = static_cast<std::size_t>(std::ceil(static_cast<float>(n) / NodeSize));
       numNodes += n;
-      m_levelBounds[i] = numNodes * 4;
+      _levelBounds[i] = numNodes * 4;
       i += 1;
     } while (n != 1);
 
-    m_numNodes = numNodes;
-    m_boxes = std::unique_ptr<Real[]>(new Real[numNodes * 4]);
-    m_indices = std::unique_ptr<std::size_t[]>(new std::size_t[numNodes]);
-    m_pos = 0;
-    m_minX = std::numeric_limits<Real>::infinity();
-    m_minY = std::numeric_limits<Real>::infinity();
-    m_maxX = -std::numeric_limits<Real>::infinity();
-    m_maxY = -std::numeric_limits<Real>::infinity();
+    _numNodes = numNodes;
+    _boxes = std::unique_ptr<Real[]>(new Real[numNodes * 4]);
+    _indices = std::unique_ptr<std::size_t[]>(new std::size_t[numNodes]);
+    _pos = 0;
+    _minX = std::numeric_limits<Real>::infinity();
+    _minY = std::numeric_limits<Real>::infinity();
+    _maxX = -std::numeric_limits<Real>::infinity();
+    _maxY = -std::numeric_limits<Real>::infinity();
   }
 
-  Real minX() const { return m_minX; }
-  Real minY() const { return m_minY; }
-  Real maxX() const { return m_maxX; }
-  Real maxY() const { return m_maxY; }
+  Real minX() const { return _minX; }
+  Real minY() const { return _minY; }
+  Real maxX() const { return _maxX; }
+  Real maxY() const { return _maxY; }
 
   void add(Real minX, Real minY, Real maxX, Real maxY) {
-    std::size_t index = m_pos >> 2;
-    m_indices[index] = index;
-    m_boxes[m_pos++] = minX;
-    m_boxes[m_pos++] = minY;
-    m_boxes[m_pos++] = maxX;
-    m_boxes[m_pos++] = maxY;
+    std::size_t index = _pos >> 2;
+    _indices[index] = index;
+    _boxes[_pos++] = minX;
+    _boxes[_pos++] = minY;
+    _boxes[_pos++] = maxX;
+    _boxes[_pos++] = maxY;
 
-    if (minX < m_minX)
-      m_minX = minX;
-    if (minY < m_minY)
-      m_minY = minY;
-    if (maxX > m_maxX)
-      m_maxX = maxX;
-    if (maxY > m_maxY)
-      m_maxY = maxY;
+    if (minX < _minX)
+      _minX = minX;
+    if (minY < _minY)
+      _minY = minY;
+    if (maxX > _maxX)
+      _maxX = maxX;
+    if (maxY > _maxY)
+      _maxY = maxY;
   }
 
   void finish() {
-    CAVC_ASSERT(m_pos >> 2 == m_numItems, "added item count should equal static size given");
+    PLLIB_ASSERT(_pos >> 2 == _numItems, "added item count should equal static size given");
 
     // if number of items is less than node size then skip sorting since each node of boxes must be
     // fully scanned regardless and there is only one node
-    if (m_numItems <= NodeSize) {
-      m_indices[m_pos >> 2] = 0;
+    if (_numItems <= NodeSize) {
+      _indices[_pos >> 2] = 0;
       // fill root box with total extents
-      m_boxes[m_pos++] = m_minX;
-      m_boxes[m_pos++] = m_minY;
-      m_boxes[m_pos++] = m_maxX;
-      m_boxes[m_pos++] = m_maxY;
+      _boxes[_pos++] = _minX;
+      _boxes[_pos++] = _minY;
+      _boxes[_pos++] = _maxX;
+      _boxes[_pos++] = _maxY;
       return;
     }
 
-    Real width = m_maxX - m_minX;
-    Real height = m_maxY - m_minY;
-    std::unique_ptr<std::uint32_t[]> hilbertValues(new std::uint32_t[m_numItems]);
+    Real width = _maxX - _minX;
+    Real height = _maxY - _minY;
+    std::unique_ptr<std::uint32_t[]> hilbertValues(new std::uint32_t[_numItems]);
 
     std::size_t pos = 0;
 
-    for (std::size_t i = 0; i < m_numItems; ++i) {
+    for (std::size_t i = 0; i < _numItems; ++i) {
       pos = 4 * i;
-      Real minX = m_boxes[pos++];
-      Real minY = m_boxes[pos++];
-      Real maxX = m_boxes[pos++];
-      Real maxY = m_boxes[pos++];
+      Real minX = _boxes[pos++];
+      Real minY = _boxes[pos++];
+      Real maxX = _boxes[pos++];
+      Real maxY = _boxes[pos++];
 
       // hilbert max input value for x and y
       const Real hilbertMax = static_cast<Real>((1 << 16) - 1);
@@ -99,20 +99,20 @@ public:
       // [0 -> n - 1] such that the min of the entire set of bounding boxes maps to 0 and the max of
       // the entire set of bounding boxes maps to n - 1 our 2d space is x: [0 -> n-1] and
       // y: [0 -> n-1], our 1d hilbert curve value space is d: [0 -> n^2 - 1]
-      Real x = std::floor(hilbertMax * ((minX + maxX) / 2 - m_minX) / width);
+      Real x = std::floor(hilbertMax * ((minX + maxX) / 2 - _minX) / width);
       std::uint32_t hx = static_cast<std::uint32_t>(x);
-      Real y = std::floor(hilbertMax * ((minY + maxY) / 2 - m_minY) / height);
+      Real y = std::floor(hilbertMax * ((minY + maxY) / 2 - _minY) / height);
       std::uint32_t hy = static_cast<std::uint32_t>(y);
       hilbertValues[i] = hilbertXYToIndex(hx, hy);
     }
 
     // sort items by their Hilbert value (for packing later)
-    sort(&hilbertValues[0], &m_boxes[0], &m_indices[0], 0, m_numItems - 1);
+    sort(&hilbertValues[0], &_boxes[0], &_indices[0], 0, _numItems - 1);
 
     // generate nodes at each tree level, bottom-up
     pos = 0;
-    for (std::size_t i = 0; i < m_numLevels - 1; i++) {
-      auto end = m_levelBounds[i];
+    for (std::size_t i = 0; i < _numLevels - 1; i++) {
+      auto end = _levelBounds[i];
 
       // generate a parent node for each block of consecutive <nodeSize> nodes
       while (pos < end) {
@@ -124,10 +124,10 @@ public:
 
         // calculate bbox for the new node
         for (std::size_t j = 0; j < NodeSize && pos < end; j++) {
-          auto minX = m_boxes[pos++];
-          auto minY = m_boxes[pos++];
-          auto maxX = m_boxes[pos++];
-          auto maxY = m_boxes[pos++];
+          auto minX = _boxes[pos++];
+          auto minY = _boxes[pos++];
+          auto maxX = _boxes[pos++];
+          auto maxY = _boxes[pos++];
           if (minX < nodeMinX)
             nodeMinX = minX;
           if (minY < nodeMinY)
@@ -139,11 +139,11 @@ public:
         }
 
         // add the new node to the tree data
-        m_indices[m_pos >> 2] = nodeIndex;
-        m_boxes[m_pos++] = nodeMinX;
-        m_boxes[m_pos++] = nodeMinY;
-        m_boxes[m_pos++] = nodeMaxX;
-        m_boxes[m_pos++] = nodeMaxY;
+        _indices[_pos >> 2] = nodeIndex;
+        _boxes[_pos++] = nodeMinX;
+        _boxes[_pos++] = nodeMinY;
+        _boxes[_pos++] = nodeMaxX;
+        _boxes[_pos++] = nodeMaxY;
       }
     }
   }
@@ -152,22 +152,22 @@ public:
   // bool(std::size_t level, Real xmin, Real ymin, Real xmax, Real ymax, std::size_t level).
   // Visiting stops early if false is returned.
   template <typename F> void visitBoundingBoxes(F &&visitor) const {
-    std::size_t nodeIndex = 4 * m_numNodes - 4;
-    std::size_t level = m_numLevels - 1;
+    std::size_t nodeIndex = 4 * _numNodes - 4;
+    std::size_t level = _numLevels - 1;
 
     std::vector<std::size_t> stack;
     stack.reserve(16);
 
     bool done = false;
     while (!done) {
-      auto end = std::min(nodeIndex + NodeSize * 4, m_levelBounds[level]);
+      auto end = std::min(nodeIndex + NodeSize * 4, _levelBounds[level]);
       for (std::size_t pos = nodeIndex; pos < end; pos += 4) {
-        auto index = m_indices[pos >> 2];
-        if (!visitor(level, m_boxes[pos], m_boxes[pos + 1], m_boxes[pos + 2], m_boxes[pos + 3])) {
+        auto index = _indices[pos >> 2];
+        if (!visitor(level, _boxes[pos], _boxes[pos + 1], _boxes[pos + 2], _boxes[pos + 3])) {
           return;
         }
 
-        if (nodeIndex >= m_numItems * 4) {
+        if (nodeIndex >= _numItems * 4) {
           stack.push_back(index);
           stack.push_back(level - 1);
         }
@@ -188,8 +188,8 @@ public:
   // bool(std::size_t index, Real xmin, Real ymin, Real xmax, Real ymax). Visiting stops early if
   // false is returned.
   template <typename F> void visitItemBoxes(F &&visitor) const {
-    for (std::size_t i = 0; i < m_levelBounds[0]; i += 4) {
-      if (!visitor(m_indices[i >> 2], m_boxes[i], m_boxes[i + 1], m_boxes[i + 2], m_boxes[i + 3])) {
+    for (std::size_t i = 0; i < _levelBounds[0]; i += 4) {
+      if (!visitor(_indices[i >> 2], _boxes[i], _boxes[i + 1], _boxes[i + 2], _boxes[i + 3])) {
         return;
       }
     }
@@ -232,10 +232,10 @@ public:
   template <typename F>
   void visitQuery(Real minX, Real minY, Real maxX, Real maxY, F &&visitor,
                   std::vector<std::size_t> &stack) const {
-    CAVC_ASSERT(m_pos == 4 * m_numNodes, "data not yet indexed - call Finish() before querying");
+    PLLIB_ASSERT(_pos == 4 * _numNodes, "data not yet indexed - call Finish() before querying");
 
-    auto nodeIndex = 4 * m_numNodes - 4;
-    auto level = m_numLevels - 1;
+    auto nodeIndex = 4 * _numNodes - 4;
+    auto level = _numLevels - 1;
 
     stack.clear();
 
@@ -243,19 +243,19 @@ public:
 
     while (!done) {
       // find the end index of the node
-      auto end = std::min(nodeIndex + NodeSize * 4, m_levelBounds[level]);
+      auto end = std::min(nodeIndex + NodeSize * 4, _levelBounds[level]);
 
       // search through child nodes
       for (std::size_t pos = nodeIndex; pos < end; pos += 4) {
-        auto index = m_indices[pos >> 2];
+        auto index = _indices[pos >> 2];
         // check if node bbox intersects with query bbox
-        if (maxX < m_boxes[pos] || maxY < m_boxes[pos + 1] || minX > m_boxes[pos + 2] ||
-            minY > m_boxes[pos + 3]) {
+        if (maxX < _boxes[pos] || maxY < _boxes[pos + 1] || minX > _boxes[pos + 2] ||
+            minY > _boxes[pos + 3]) {
           // no intersect
           continue;
         }
 
-        if (nodeIndex < m_numItems * 4) {
+        if (nodeIndex < _numItems * 4) {
           done = !visitor(index);
           if (done) {
             break;
@@ -334,18 +334,18 @@ public:
   }
 
 private:
-  Real m_minX;
-  Real m_minY;
-  Real m_maxX;
-  Real m_maxY;
-  std::size_t m_numItems;
-  std::size_t m_numLevels;
+  Real _minX;
+  Real _minY;
+  Real _maxX;
+  Real _maxY;
+  std::size_t _numItems;
+  std::size_t _numLevels;
   // using std::unique_ptr arrays for uninitialized memory optimization
-  std::unique_ptr<std::size_t[]> m_levelBounds;
-  std::size_t m_numNodes;
-  std::unique_ptr<Real[]> m_boxes;
-  std::unique_ptr<std::size_t[]> m_indices;
-  std::size_t m_pos;
+  std::unique_ptr<std::size_t[]> _levelBounds;
+  std::size_t _numNodes;
+  std::unique_ptr<Real[]> _boxes;
+  std::unique_ptr<std::size_t[]> _indices;
+  std::size_t _pos;
 
   static std::size_t computeNumLevels(std::size_t numItems) {
     std::size_t n = numItems;
@@ -361,7 +361,7 @@ private:
   // quicksort that partially sorts the bounding box data alongside the Hilbert values
   static void sort(std::uint32_t *values, Real *boxes, std::size_t *indices, std::size_t left,
                    std::size_t right) {
-    CAVC_ASSERT(left <= right, "left index should never be past right index");
+    PLLIB_ASSERT(left <= right, "left index should never be past right index");
 
     // check against NodeSize (only need to sort down to NodeSize buckets)
     if (left / NodeSize >= right / NodeSize) {
